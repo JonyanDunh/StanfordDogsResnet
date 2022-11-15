@@ -68,7 +68,7 @@ def loadData():
 
 
 def show_image(model):
-    plt.figure(figsize=(15, 15), dpi=150)
+    plt.figure(figsize=(15, 15))
     for i in range(25):
         plt.subplot(5, 5, i + 1)
         plt.xticks([])
@@ -82,20 +82,26 @@ def show_image(model):
     plt.show()
 
 
-def show_training_trend():
-    plt.title('The trend of training')
+def show_training_accuracy(title=""):
+    plt.title('The trend of Accuracy '+title)
     plt.grid(True)
     plt.xlabel('Epoch')
     plt.ylabel('Accuracy or Loss')
     x = range(len(Accuracy_train_list))
     plt.plot(x, Accuracy_train_list, 'b', label="Accuracy of Training Data", alpha=0.7)
     plt.plot(x, Accuracy_val_list, 'r', label="Accuracy of Validation Data", alpha=0.7)
-    plt.plot(x, Loss_list, 'g', label="Loss", alpha=0.3)
     plt.legend()
     plt.show()
 
-
-
+def show_training_loss():
+    plt.title('The trend of Loss')
+    plt.grid(True)
+    plt.xlabel('Epoch')
+    plt.ylabel('Accuracy or Loss')
+    x = range(len(Loss_list))
+    plt.plot(x, Loss_list, 'g', label="Loss", alpha=0.3)
+    plt.legend()
+    plt.show()
 
 
 def training_loop(n_epochs, optimizer, model, loss_fn, train_loader):
@@ -114,15 +120,15 @@ def training_loop(n_epochs, optimizer, model, loss_fn, train_loader):
         print('{} Epoch {}, Training loss {}'.format(
             datetime.datetime.now(), epoch,
             loss_train / len(train_loader)))
-        validate(model)
-    show_training_trend()
-    torch.save(model.state_dict(), '/data/saved_model/dogs_classification/dogs_classification_model_4.pt')
+        validate(model,train_loader,val_loader)
+    show_training_accuracy()
+    show_training_loss()
+    #torch.save(model.state_dict(), '/data/saved_model/dogs_classification/dogs_classification_model_4.pt')
 
 
-def validate(model):
-    train_loader2 = torch.utils.data.DataLoader(train_data, batch_size=512, shuffle=False)
-    val_loader2 = torch.utils.data.DataLoader(val_data, batch_size=512, shuffle=False)
-    for name, loader in [("train", train_loader2), ("val", val_loader2)]:
+def validate(model,train_loader,val_loader):
+
+    for name, loader in [("train", train_loader), ("val", val_loader)]:
         correct = 0
         total = 0
         with torch.no_grad():
@@ -259,14 +265,22 @@ scaler = GradScaler()
 dogs_class_dir, class_map_name, class_map_id_number = listData()
 train_data, val_data = loadData()
 train_loader = torch.utils.data.DataLoader(train_data, batch_size=64, shuffle=True)
+val_loader = torch.utils.data.DataLoader(val_data, batch_size=64, shuffle=True)
 Accuracy_train_list = []
 Accuracy_val_list = []
 Loss_list = []
-Loss_list.reverse()
+
 print("Number of parameter: %.2fM" % (sum([param.nelement() for param in model.parameters()]) / 1e6))
 print(model._modules)
 
-training_loop(n_epochs=15
-              , optimizer=optim.AdamW(model.parameters(), lr=0.001), model=model, loss_fn=nn.CrossEntropyLoss().cuda(),
+training_loop(n_epochs=50
+              , optimizer=optim.AdamW(model.parameters(), lr=0.0005), model=model, loss_fn=nn.CrossEntropyLoss().cuda(),
               train_loader=train_loader, )
-show_image(model)
+Accuracy_val_list=[]
+Accuracy_train_list = []
+
+for i in range(10):
+    validate(model,train_loader,val_loader)
+show_training_accuracy("after training")
+#show_image(model)
+print("complete!")
